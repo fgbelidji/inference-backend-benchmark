@@ -1,19 +1,23 @@
-defaults: &defaults
-  prompt_lengths: [32, 128, 512, 2048]
-  bench: { duration: 45s, warmup: 15s, decode_tokens: 16, max_vus: 10 }
 
 model: &model Qwen/Qwen3-0.6B
 
+benchmark: 
+  dataset-name: "random"
+  request-rate: 1
+  random-input-len: 1024
+  random-output-len: 128
+  num-prompts: 10
+
+
 backends:
   vllm:
-    <<: *defaults
     image: vllm/vllm-openai:latest
     port: 8000
     args:
       - --model 
       - *model
       - --dtype 
-      - float16
+      - bfloat16
       - --max_model_len 
       - 4096
       - --gpu_memory_utilization 
@@ -23,9 +27,7 @@ backends:
       - --data_parallel_size 
       - 1
 
-
   sglang:
-    <<: *defaults
     image: lmsysorg/sglang:dev
     port: &port 30000
     args:
@@ -37,9 +39,9 @@ backends:
       - --model-path 
       - *model
       - --dtype 
-      - float16
+      - bfloat16
       - --tensor-parallel-size 
-      - 1
+      - 4
       - --data-parallel-size 
       - 1
       - --context-length 
@@ -50,11 +52,7 @@ backends:
       - --disable-overlap-schedule
       - --enable-p2p-check
 
-
-
-
   tgi:
-    <<: *defaults
     image: ghcr.io/huggingface/text-generation-inference:latest
     port: 3000
     args:
@@ -62,9 +60,9 @@ backends:
       - --model-id
       - *model
       - --dtype 
-      - float16
+      - bfloat16
       - --num-shard 
-      - 1
+      - 4
       - --max-input-tokens 
       - 4096
       - --port 
